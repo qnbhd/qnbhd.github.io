@@ -8,7 +8,6 @@ on:
       - .gitignore
       - README.md
       - LICENSE
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -25,7 +24,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,8 +40,16 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.3
-          bundler-cache: true
+          ruby-version: "3.3"
+          bundler-cache: false # Disable auto bundler-cache since we need Bundler 4.0
+
+      - name: Install Bundler 4.0.0
+        run: |
+          gem install bundler:4.0.0
+          bundler --version
+
+      - name: Install dependencies
+        run: bundle install
 
       - name: Build site
         run: bundle exec jekyll b -d "_site${{ steps.pages.outputs.base_path }}"

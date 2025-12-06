@@ -1,0 +1,67 @@
+pre code {
+  font-size: 0.955rem;
+  line-height: 1.4;
+  -webkit-text-size-adjust: none;
+}
+
+code {
+  font-family: "Iosevka Term Web";
+  font-size: 0.955rem;
+  -webkit-text-size-adjust: none;
+}
+
+div.highlighter-rouge {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fdfdfd;
+    overflow: hidden;
+    margin-top: 1.2rem;
+    margin-bottom: 1.2rem;
+}
+
+code.highlighter-rouge {
+    font-size: 0.955rem;
+    border-width: 0;
+}
+
+.highlight > * {
+    padding: 0rem 0.5rem;
+}
+
+pre {
+  overflow-x: auto;
+  white-space: pre;
+}
+
+pre.highlight {
+    padding: 0;
+}
+
+.hljs-ln tr:first-child .hljs-ln-code {
+    padding-top: 0.5rem !important;
+}
+
+.hljs-ln tr:last-child .hljs-ln-code {
+    padding-bottom: 0.5rem !important;
+}
+
+.hljs-ln-numbers {
+    user-select: none;
+
+    text-align: right;
+    color: #aaa;
+    border-right: 1px solid #ddd;
+    background: #fdfdfd;
+
+    padding: 0 10px 0 6px;
+    line-height: 1.4;
+}
+
+.hljs-ln td {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+}
+
+.hljs-ln-code {
+    margin-left: 12px;
+}
