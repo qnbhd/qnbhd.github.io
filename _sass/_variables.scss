@@ -1,5 +1,6 @@
 $brand-color: #faf9f5;
 $highlight: lighten($brand-color, 35%);
+$accent-color: #e45649;
 $text-color: #0b0404;
 $muted-text-color: #64644b;
 $font-family: "EB Garamond", Garamond, "Times New Roman", serif;
@@ -8,3 +9,17 @@ $on-bigphone: 375px;
 $on-tablet: 768px;
 $on-laptop: 960px;
 $on-desktop: 1200px;
+
+
+$blockquote-border: #3498db;
+$blockquote-bg: $brand-color;
+$blockquote-text: #555555;
+
+$prompt-tip-bg: #d4edda;
+$prompt-tip-border: #28a745;
+$prompt-info-bg: #d1ecf1;
+$prompt-info-border: #17a2b8;
+$prompt-warning-bg: #fff3cd;
+$prompt-warning-border: #ffc107;
+$prompt-danger-bg: #f8d7da;
+$prompt-danger-border: #dc3545;

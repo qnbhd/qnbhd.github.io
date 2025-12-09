@@ -22,15 +22,20 @@ url: "https://qnbhd.github.io" # the base hostname & protocol for your site, e.g
 # icon: /assets/images/icon-512.png
 # twitter_username: qnbh
 github_username: qnbhd
+google_analytics: G-2BF1KFK36S
 
 # Build settings
 markdown: kramdown
 highlighter: rouge
-input: GFM
 
 kramdown:
   math_engine: mathjax
   math_engine_opts: {}
+  syntax_highlighter: rouge
+  input: GFM
+
+hide_search: true
+hide_credits: true
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list
@@ -46,6 +51,7 @@ kramdown:
 
 plugins:
   - jekyll-paginate
+  - jekyll-sitemap
 
 paginate: 3
 paginate_path: "/page/:num/"

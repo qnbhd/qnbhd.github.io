@@ -1,3 +1,7 @@
+.post-title {
+  line-height: 2.3rem;
+}
+
 .post {
   background: white;
   border: solid 1px #efefef;
@@ -26,7 +30,7 @@
   text-align: justify;
   text-justify: inter-word;
   text-indent: 0;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .post p:first-of-type,
@@ -41,12 +45,27 @@
 .post dl,
 .post ul,
 .post ol {
-  margin: 1.5em;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  margin-left: 1.5rem;
+  margin-right: 0.5rem;
 }
 
 .post li {
   margin-left: 1.5rem;
-  margin-right: 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .post dl,
+  .post ul,
+  .post ol {
+    margin: 1em 0;
+  }
+
+  .post li {
+    margin-left: 1em;
+    margin-right: 0;
+  }
 }
 
 .post-content:first-child {
@@ -65,4 +84,11 @@
   padding: 1em;
   text-decoration: none;
   text-transform: uppercase;
+}
+
+.post hr {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 50%;
 }

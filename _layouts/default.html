@@ -19,12 +19,14 @@
     {%- endif -%}
 
     <link rel="stylesheet" href="{{ '/assets/css/highlight/qubik.css' | absolute_url }}">
-    <script src="{{ '/assets/js/vendors/highlight.pack.js' | absolute_url }}"></script>
+
+    <!--<script src="{{ '/assets/js/vendors/hljs.js' | absolute_url }}"></script>
+    <script src="{{ '/assets/js/vendors/hljs-zig.js' | absolute_url }}"></script>
     <script src="{{ '/assets/js/vendors/hljs-nums.js' | absolute_url }}"></script>
     <script>{
-      hljs.initHighlightingOnLoad();
+      hljs.highlightAll();
       hljs.initLineNumbersOnLoad();
-    }</script>
+    }</script>-->
 
     <script>
       window.MathJax = {

@@ -7,3 +7,5 @@ $asset_url: "{{ "/assets " | absolute_url }}";
 
 @import "reset", "variables", "syntax_highlighting", "mixins", "font", "base", "masthead", "menu", "post-list",
     "article", "footnotes", "search";
+
+@import "highlight/qubik.css";

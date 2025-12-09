@@ -29,10 +29,16 @@
 .site-navigation a {
   display: block;
   padding: .25em .5em;
+  color: #222;
   text-decoration: none;
-  transition: opacity .125s ease-in-out;
+  transition: opacity .225s ease-in-out;
   &:hover,
   &:focus {
     opacity: 1;
+    color: #000;
   }
+}
+
+article.post ~ .site-navigation {
+  margin-bottom: 3rem;
 }
