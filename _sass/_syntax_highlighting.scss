@@ -43,10 +43,6 @@ pre {
   margin: 0;
 }
 
-// ============================================
-// БЛОКИ БЕЗ НОМЕРОВ СТРОК
-// ============================================
-// Применяем padding только если НЕТ таблицы внутри
 figure.highlight > pre > code:not(:has(table)),
 div.highlighter-rouge > pre > code:not(:has(table)),
 div.highlighter-rouge > div.highlight > pre > code:not(:has(table)) {
@@ -54,10 +50,6 @@ div.highlighter-rouge > div.highlight > pre > code:not(:has(table)) {
   padding: 0.9rem 1rem;
 }
 
-// ============================================
-// БЛОКИ С НОМЕРАМИ СТРОК
-// ============================================
-// Для блоков с таблицей убираем padding у code
 figure.highlight > pre > code:has(table) {
   display: block;
   padding: 0;

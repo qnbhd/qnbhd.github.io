@@ -31,8 +31,8 @@ highlighter: rouge
 kramdown:
   math_engine: mathjax
   math_engine_opts: {}
-  syntax_highlighter: rouge
-  input: GFM
+  # syntax_highlighter: rouge
+  # input: GFM
 
 hide_search: true
 hide_credits: true
