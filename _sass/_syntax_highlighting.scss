@@ -26,11 +26,22 @@ pre.highlight {
 }
 
 code.highlighter-rouge {
-  font-size: 0.955rem;
-  border-width: 0;
-  padding: 0.2em 0.4em;
-  background: #f5f5f5;
+  font-size: .85rem;
+  /* padding: 0.2em 0.4em; */
+  background: #3e3e3a0e;
+  color: $accent-darker-color;
+
+  /* border-width: 2px;
   border-radius: 3px;
+  border-color: #000000; */
+  padding-top: 1px;
+  padding-bottom: 1px;
+  padding-left: .25rem;
+  padding-right: .25rem;
+
+  border: .5px solid #aeaeae;
+  border-radius: .4rem;
+  border-color: #1f1e1d26;
 }
 
 pre {

@@ -13,21 +13,20 @@
 .site-navigation li {
   list-style: none;
   font-size: .875em;
-  font-variant: small-caps;
   margin: 0;
 }
 
 .site-navigation a {
   display: block;
   padding: .25em .5em;
-  color: #222;
+  color: #333;
   text-decoration: none;
-  transition: opacity .225s ease-in-out;
+  transition: opacity .125s ease-in-out;
 
   &:hover,
   &:focus {
     opacity: 1;
-    color: #000;
+    color: #000 !important;
   }
 }
 

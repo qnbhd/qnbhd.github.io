@@ -60,7 +60,7 @@ a {
   transition: color 0.2s ease;
 
   &:hover {
-    color: color.adjust($accent-color, $lightness: -15%);
+    color: color.adjust($accent-darker-color, $lightness: -15%);
   }
 
   &:focus {
