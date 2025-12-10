@@ -1,12 +1,6 @@
 .site-navigation {
   margin-top: 2rem;
   padding: 0 1rem;
-  &:hover,
-  &:focus-within {
-    a {
-      opacity: .7;
-    }
-  }
 }
 
 .site-navigation ul {
@@ -21,9 +15,6 @@
   font-size: .875em;
   font-variant: small-caps;
   margin: 0;
-  &.active a {
-    text-decoration: underline;
-  }
 }
 
 .site-navigation a {
@@ -32,9 +23,21 @@
   color: #222;
   text-decoration: none;
   transition: opacity .225s ease-in-out;
+
   &:hover,
   &:focus {
     opacity: 1;
     color: #000;
   }
+}
+
+.site-navigation:hover,
+.site-navigation:focus-within {
+  a {
+    opacity: .7;
+  }
+}
+
+.site-navigation li.active a {
+  text-decoration: underline;
 }

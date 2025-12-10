@@ -3,17 +3,40 @@
     font-style: normal;
     font-weight: 400;
     font-display: swap;
-    src:
-        url("#{$asset_url}/fonts/eb-garamond-v9-latin-regular.woff2") format("woff2"),
-        url("#{$asset_url}/fonts/eb-garamond-v9-latin-regular.woff") format("woff");
+    src: url("#{$asset_url}/fonts/EBGaramond-Regular.woff2") format("woff2");
 }
 
 @font-face {
-	font-family: 'Iosevka Term Web';
-	font-display: swap;
-	font-weight: 400;
-	font-stretch: normal;
-	font-style: normal;
-	src: url('#{$asset_url}/fonts/IosevkaTermCustom-Regular.woff2') format('woff2'),
-	     url('#{$asset_url}/fonts/IosevkaTermCustom-Regular.ttf') format('truetype');
+    font-family: "EB Garamond";
+    font-style: italic;
+    font-weight: 400;
+    font-display: swap;
+    src: url("#{$asset_url}/fonts/EBGaramond-Italic.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "EB Garamond";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("#{$asset_url}/fonts/EBGaramond-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "EB Garamond";
+    font-style: italic;
+    font-weight: 600;
+    font-display: swap;
+    src: url("#{$asset_url}/fonts/EBGaramond-SemiBoldItalic.woff2") format("woff2");
+}
+
+
+@font-face {
+    font-family: 'Iosevka Term Web';
+    font-display: swap;
+    font-weight: 400;
+    font-stretch: normal;
+    font-style: normal;
+    src: url('#{$asset_url}/fonts/IosevkaTermCustom-Regular.woff2') format('woff2'),
+         url('#{$asset_url}/fonts/IosevkaTermCustom-Regular.ttf') format('truetype');
 }
