@@ -147,23 +147,25 @@ Most modern statically typed languages use various forms of polymorphism. You ma
 
 # Type Inference
 
-In the context of programming language design, type system implementation typically involves the following tasks:
+Before moving on to implementation, it's worth noting why type inference is generally important in language development.
+The type system not only prevents errors, but also determines how expressive a language can be.  The moment a compiler can calculate types for you, the code becomes cleaner, more ergonomic, and often easier to refactor. At the same time, type inference forces the type system to be precise -- ambiguous rules quickly collapse under their own weight.
+
+In general, when implementing a type system, we are faced with two fundamental issues:
 
 * **Type checking:** is it true that a given term has type $$T$$?
 * **Type inference:** does there exist some type environment and a type $$T$$ such that term $$M$$ has type $$T$$?
 
-The second point is precisely the problem of type inference. Let's begin with intuitive examples:
+Type checking is a mechanical verification step: we already know the expected type and just check if the term matches. Type inference, on the contrary, is what becomes interesting -- it is the process of "discovering" types from the structure of the program itself. Modern languages rely heavily on this to reduce noise in annotations, and well-designed logical inference makes even fairly complex input systems seem light.
 
+A simple example:
 
 ```zig
 var x = "foo"; // x: string
-var x = "be";
 ```
 
+There is nothing mysterious here. The compiler sees a string literal, so "x" gets the type "string". Each subsequent use of `x` benefits from this output.
 
-Here, type inference for variable `x` is trivial because `x` is assigned a string literal. Later, when using the symbol `x`, it is clear that it has type `"string"`.
-
-Another example -- suppose we have some function `foo` that has type $$Int \rightarrow Int$$. Then:
+Another example -- suppose we have some function `foo` that has type `Int -> Int`. Then:
 
 ```
 y = ...?
@@ -172,13 +174,15 @@ foo(y) // foo(y) : Int
 
 Here, we do not know what exactly `y` is, but we can definitely say that it must have type `Int`.
 
-In the case of functions (abstractions), we can say that for a function:
+For abstractions, we can generalize this pattern. Defining a function of the form:
 
 ```zig
-pub fn bar(x: t) = expr
+pub fn bar(x: t) = expression
 ```
 
-where $$expr: t'$$, $$bar$$ will have type $$t \rightarrow t'$$.
+implies that `bar` will be of type `t -> T_expr`, where `T_expr` is the assumed type of `expr`, assuming that `x` is of type `t`.
+
+With this intuition, we can begin to introduce more abstractions and gradually create a concrete implementation of type inference.
 
 Now let's introduce a few abstractions and begin writing an implementation!
 
@@ -239,7 +243,11 @@ A **type variable** plays perhaps the most important role in type inference. You
 
 A **type application** can be thought of as some function that takes one type and returns another. For example, `TyApp(List, Int)` -- here we apply type `List` to type `Int`.
 
-The **TGen** type is needed for implementing type schemes (to support polymorphism), which will be described later. It is represented as a numeric identifier.
+The **TGen** type which represent “generic” or quantified type variables. It is represented as a numeric identifier.
+The only place where TGen values are used is in the representation of type schemes, which will be described later.
+
+> We do not provide a representation for type synonyms, assuming instead that they have been fully expanded before typechecking. For example, the `String` type synonym for `[Char]`.
+{: .prompt-info }
 
 In implementation, this will look like:
 
@@ -349,90 +357,118 @@ fn printType(t: *const Type) void {
 }
 {% endhighlight %}
 
+Let's write our final `main` function and define some types using `Kind` and `Type`.
 
-And our final `main` function will look like this:
+We begin by creating the kinds:
+
+{% highlight zig linenos %}
+// ------------------------------------------------------------------
+// KINDS
+// ------------------------------------------------------------------
+// Create the base kind star kind `*`.  
+// This kind represents ordinary, fully applied types, for example:
+//     Int : *
+//     Char : *
+//     ()   : *
+var star = Kind{ .star = {} };
+const kstar = &star;
+
+// Create the kind `* -> *`.  
+// This kind represents type constructors that take one type
+// and return a new type:
+//     []    : * -> *
+//     List  : * -> *
+//     Array : * -> *
+// Any type with kind `* -> *` cannot be used as a value-level type
+// until it is applied to an argument of kind `*`.
+var kfun_star_star = Kind{
+    .kfun = .{ .left = kstar, .right = kstar },
+};
+{% endhighlight %}
+
+Once the kinds are ready, we introduce several primitive types (`Int`, `Char`, `()`), along with a type variable `a`. That variable is our first placeholder -- an unknown that will eventually be resolved through inference.
+
+{% highlight zig linenos %}
+var tUnit = Type.typecon("()", star);
+var tChar = Type.typecon("Char", star);
+var tInt  = Type.typecon("Int",  star);
+
+// Create a type variable `a : *`.
+// This represents an unknown type that must later unify
+// with some concrete type during inference.
+var tvA = Type.typevar(0, star);
+{% endhighlight %}
+
+Now we can define *higher-kinded* types using $$* \rightarrow *$$ kind:
+
+{% highlight zig linenos %}
+// List constructor: [] : * -> *
+var tList = Type.typecon("[]", kfun_star_star);
+
+// Arrow constructor for function types: (->) : * -> (* -> *)
+// The left kind is `*`, and the right is again a constructor kind.
+//
+// When applied twice as:
+//     (->) A B
+// we obtain the function type A -> B.
+var tArrow = Type.typecon("(->)", Kind{
+    .kfun = .{ .left = kstar, .right = &kfun_star_star },
+});
+
+// Tuple constructor: (,) : * -> *  
+// (for simplicity represented as binary tuple)
+var tTuple2 = Type.typecon("(,)", kfun_star_star);
+{% endhighlight %}
+
+This types accept other type as argument and returns new type. Using application we can make fully applied types:
+
+{% highlight zig linenos %}
+// Build the type `[a]` by applying the List constructor to `a`:
+//     TApp tList a
+var listA = Type.typeapp(&tList, &tvA);
+
+// Build `Int -> [a]`.
+//
+// Function types are expressed by applying the arrow constructor twice:
+//     (->) Int [a]
+//
+// First application: (->) Int
+var arrowInt = Type.typeapp(&tArrow, &tInt);
+
+// Second application: ((->) Int) [a]
+var fnType = Type.typeapp(&arrowInt, &listA);
+
+// Build a concrete list type `[Char]`.
+var listChar = Type.typeapp(&tList, &tChar);
+{% endhighlight %}
+
+Full `main` implementation with debug prints:
+
+<details>
 
 {% highlight zig linenos %}
 pub fn main() !void {
-    // ------------------------------------------------------------------
-    // KINDS
-    // ------------------------------------------------------------------
-    // Create the base kind star kind `*`.  
-    // This kind represents ordinary, fully applied types:
-    //     Int : *
-    //     Char : *
-    //     ()   : *
     var star = Kind{ .star = {} };
     const kstar = &star;
-
-    // Create the kind `* -> *`.  
-    // This kind represents type constructors that take one type
-    // and return a new type:
-    //     []    : * -> *
-    //     List  : * -> *
-    //     Array : * -> *
-    // Any type with kind `* -> *` cannot be used as a value-level type
-    // until it is applied to an argument of kind `*`.
     var kfun_star_star = Kind{
         .kfun = .{ .left = kstar, .right = kstar },
     };
 
-    // ------------------------------------------------------------------
-    // BASE TYPE CONSTRUCTORS
-    // ------------------------------------------------------------------
-    // Type constructors that represent primitive or built-in types.
-    // All of them have kind `*` because they are already complete types.
     var tUnit = Type.typecon("()", star);
     var tChar = Type.typecon("Char", star);
     var tInt  = Type.typecon("Int",  star);
-
-    // ------------------------------------------------------------------
-    // HIGHER-KIND TYPE CONSTRUCTORS
-    // ------------------------------------------------------------------
-    // List constructor: [] : * -> *
+    
+    var tvA = Type.typevar(0, star);
+    
     var tList = Type.typecon("[]", kfun_star_star);
-
-    // Arrow constructor for function types: (->) : * -> (* -> *)
-    // The left kind is `*`, and the right is again a constructor kind.
-    //
-    // When applied twice as:
-    //     (->) A B
-    // we obtain the function type A -> B.
     var tArrow = Type.typecon("(->)", Kind{
         .kfun = .{ .left = kstar, .right = &kfun_star_star },
     });
-
-    // Tuple constructor: (,) : * -> *  
-    // (for simplicity represented as binary tuple)
     var tTuple2 = Type.typecon("(,)", kfun_star_star);
-
-    // ------------------------------------------------------------------
-    // TYPE VARIABLES
-    // ------------------------------------------------------------------
-    // Create a type variable `a : *`.
-    // This represents an unknown type that must later unify
-    // with some concrete type during inference.
-    var tvA = Type.typevar(0, star);
-
-    // ------------------------------------------------------------------
-    // TYPE APPLICATION
-    // ------------------------------------------------------------------
-    // Build the type `[a]` by applying the List constructor to `a`:
-    //     TApp tList a
+    
     var listA = Type.typeapp(&tList, &tvA);
-
-    // Build `Int -> [a]`.
-    //
-    // Function types are expressed by applying the arrow constructor twice:
-    //     (->) Int [a]
-    //
-    // First application: (->) Int
     var arrowInt = Type.typeapp(&tArrow, &tInt);
-
-    // Second application: ((->) Int) [a]
     var fnType = Type.typeapp(&arrowInt, &listA);
-
-    // Build a concrete list type `[Char]`.
     var listChar = Type.typeapp(&tList, &tChar);
 
     // ------------------------------------------------------------------
@@ -471,6 +507,8 @@ pub fn main() !void {
     std.debug.print("\n", .{});
 }
 {% endhighlight %}
+
+</details>
 
 For compile and run we need to type:
 
