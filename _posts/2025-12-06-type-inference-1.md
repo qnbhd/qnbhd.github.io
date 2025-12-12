@@ -1,5 +1,5 @@
 ---
-title: Type inference with Zig - I
+title: "Type inference with Zig — I: Types & Kinds"
 author: Templin Konstantin
 category: programming
 layout: post
@@ -30,7 +30,7 @@ pub fn fact(n) {
 
 What can we say about this program? We assume that the input for this function is some number. The result of this program is a dynamic property because we do not know in advance what input the user will provide.
 
-However, there are many static properties of this program that can be determined before execution. For example, we know that the function has some parameter `n`, on which we can perform operations `<=`, `*`, `-`. The result of executing this function will be some non-negative integer. We can also determine via analysis that the program is guaranteed to terminate.
+However, there are many static properties of this program that can be determined before execution. For example, we know that the function has some parameter `n`, on which we can perform operations `<=`, `*`, `-`. The result of executing this function will be some non-negative integer. Under additional assumptions (e.g. that n ranges over $\mathbb{N}$ and all primitive operations are total), we can statically establish that the program is guaranteed to terminate.
 
 In general, static properties that help with verification, optimization, and documentation of programs are of interest. For example, we might want to ask the following questions about a program:
 
@@ -117,10 +117,10 @@ Simple type systems are easier to check, but they restrict expressiveness (for e
 
 # Polymorphism
 
-In general, polymorphism can be described as the ability to define and use functions that support many different types. The simplest example is the identity function `Id`:
+In general, polymorphism can be described as the ability to define and use functions that support many different types. The simplest example is the identity function `id` in pseudo-code:
 
 {% highlight zig %}
-pub fn Id(x: t) = x
+pub fn id[t](x: t) = x
 {% endhighlight %}
 
 
@@ -145,46 +145,43 @@ Most modern statically typed languages use various forms of polymorphism. You ma
 
 ---
 
-# Type Inference
+# Type inference
 
-Before moving on to implementation, it's worth noting why type inference is generally important in language development.
-The type system not only prevents errors, but also determines how expressive a language can be.  The moment a compiler can calculate types for you, the code becomes cleaner, more ergonomic, and often easier to refactor. At the same time, type inference forces the type system to be precise -- ambiguous rules quickly collapse under their own weight.
+Before going into the implementation details, it's worth explaining why type inference is important in language development. The type system doesn't just prevent certain classes of errors -- it determines how expressive a language can be. When a compiler can infer types for you, programs tend to become cleaner, more ergonomic, and easier to refactor.
 
-In general, when implementing a type system, we are faced with two fundamental issues:
+When building a type system, two fundamental questions inevitably arise:
 
-* **Type checking:** is it true that a given term has type $$T$$?
-* **Type inference:** does there exist some type environment and a type $$T$$ such that term $$M$$ has type $$T$$?
+* **Type checking:** is the term defined, does it really have the type $$T$$?
+* **Type inference:** Is there a context and a type of $$T$$ so that the term $$M$$ can be assigned this type?
 
-Type checking is a mechanical verification step: we already know the expected type and just check if the term matches. Type inference, on the contrary, is what becomes interesting -- it is the process of "discovering" types from the structure of the program itself. Modern languages rely heavily on this to reduce noise in annotations, and well-designed logical inference makes even fairly complex input systems seem light.
+Type checking is a mechanical part: we already know the expected type and just check for compliance. Modern languages rely heavily on this to reduce noise in annotations, and thanks to a well-designed inference algorithm, even complex type systems seem natural, as if the compiler politely finishes your sentences.
 
-A simple example:
+Let's start with an illustrative example:
 
 ```zig
 var x = "foo"; // x: string
 ```
 
-There is nothing mysterious here. The compiler sees a string literal, so "x" gets the type "string". Each subsequent use of `x` benefits from this output.
+Straightforward. The compiler sees the string literal and comes to the conclusion that `x` is a string. From now on, every use of `x` benefits from this inference. The place where we will save such statements is called the *typing context*.
 
-Another example -- suppose we have some function `foo` that has type `Int -> Int`. Then:
+Another example: suppose we have a function `foo` of type `Int -> Int`. Then:
 
-```
+```zig
 y = ...?
-foo(y) // foo(y) : Int
+foo(y) // foo(y): Int
 ```
 
-Here, we do not know what exactly `y` is, but we can definitely say that it must have type `Int`.
+Even if we don't know anything about `y`, we can conclude that `y` must be of type `Int`, otherwise the expression would not make sense. The rules simply do not allow otherwise.
 
-For abstractions, we can generalize this pattern. Defining a function of the form:
+Similarly, with abstractions:
 
 ```zig
 pub fn bar(x: t) = expression
 ```
 
-implies that `bar` will be of type `t -> T_expr`, where `T_expr` is the assumed type of `expr`, assuming that `x` is of type `t`.
+we know that `bar` must be of type `t -> T_expr', where `T_expr` is the type of the expression body.
 
-With this intuition, we can begin to introduce more abstractions and gradually create a concrete implementation of type inference.
-
-Now let's introduce a few abstractions and begin writing an implementation!
+Now let's add some abstractions and begin writing an implementation!
 
 ---
 
@@ -243,8 +240,7 @@ A **type variable** plays perhaps the most important role in type inference. You
 
 A **type application** can be thought of as some function that takes one type and returns another. For example, `TyApp(List, Int)` -- here we apply type `List` to type `Int`.
 
-The **TGen** type which represent “generic” or quantified type variables. It is represented as a numeric identifier.
-The only place where TGen values are used is in the representation of type schemes, which will be described later.
+The **TGen** type which represent “generic” or quantified type variables, it also called de Bruijn indexing. `TGen` is represented as a numeric identifier. The only place where TGen values are used is in the representation of type schemes, which will be described later.
 
 > We do not provide a representation for type synonyms, assuming instead that they have been fully expanded before typechecking. For example, the `String` type synonym for `[Char]`.
 {: .prompt-info }
@@ -317,44 +313,6 @@ pub const Type = union(enum) {
         };
     }
 };
-{% endhighlight %}
-
-For the purpose of beautiful debug output, let's introduce two auxiliary functions:
-
-{% highlight zig linenos %}
-const std = @import("std");
-
-fn printKind(k: Kind) void {
-    switch (k) {
-        .star => std.debug.print("*", .{}),
-        .kfun => |f| {
-            std.debug.print("(", .{});
-            printKind(f.left.*);
-            std.debug.print(" -> ", .{});
-            printKind(f.right.*);
-            std.debug.print(")", .{});
-        },
-    }
-}
-{% endhighlight %}
-
-and 
-
-{% highlight zig linenos %}
-fn printType(t: *const Type) void {
-    switch (t.*) {
-        .tvar => |v| std.debug.print("TVar({d})", .{v.id}),
-        .tcon => |c| std.debug.print("{s}", .{c.name}),
-        .tgen => |g| std.debug.print("TGen({d})", .{g}),
-        .tapp => |a| {
-            std.debug.print("(", .{});
-            printType(a.left);
-            std.debug.print(" ", .{});
-            printType(a.right);
-            std.debug.print(")", .{});
-        },
-    }
-}
 {% endhighlight %}
 
 Let's write our final `main` function and define some types using `Kind` and `Type`.
@@ -442,11 +400,41 @@ var fnType = Type.typeapp(&arrowInt, &listA);
 var listChar = Type.typeapp(&tList, &tChar);
 {% endhighlight %}
 
-Full `main` implementation with debug prints:
+Full `main` implementation with debug prints and format helpers:
 
 <details>
 
 {% highlight zig linenos %}
+const std = @import("std");
+
+fn printKind(k: Kind) void {
+    switch (k) {
+        .star => std.debug.print("*", .{}),
+        .kfun => |f| {
+            std.debug.print("(", .{});
+            printKind(f.left.*);
+            std.debug.print(" -> ", .{});
+            printKind(f.right.*);
+            std.debug.print(")", .{});
+        },
+    }
+}
+
+fn printType(t: *const Type) void {
+    switch (t.*) {
+        .tvar => |v| std.debug.print("TVar({d})", .{v.id}),
+        .tcon => |c| std.debug.print("{s}", .{c.name}),
+        .tgen => |g| std.debug.print("TGen({d})", .{g}),
+        .tapp => |a| {
+            std.debug.print("(", .{});
+            printType(a.left);
+            std.debug.print(" ", .{});
+            printType(a.right);
+            std.debug.print(")", .{});
+        },
+    }
+}
+
 pub fn main() !void {
     var star = Kind{ .star = {} };
     const kstar = &star;
@@ -540,6 +528,9 @@ This shows that the kinds and types that we have implemented is already capable 
 This concludes the first part of the series of articles on type inference. In the following parts we will examine the notions of substitution, type schemes, and the W algorithm.
 
 Thank you all for your attention 🙂
+
+> **Full source code** of this part available at [gist](https://gist.github.com/qnbhd/db684ead24131990ba51bc6f2c3149b6)
+{: .prompt-tip }
 
 ---
 
