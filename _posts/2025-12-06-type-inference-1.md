@@ -200,31 +200,58 @@ Let’s proceed to implementing kinds. But first, a small disclaimer -- the pres
 
 The implementation was largely inspired by the absolutely wonderful article *Typing Haskell in Haskell* by **Mark P. Jones**. I highly recommend it to anyone interested; for example, it also covers type class implementation.
 
-Here is approximately how the definition of kinds will look in Zig. Later we will need the ability to compare kinds, so an `eql` function is also provided.
+
+Let us start with a minimal representation of kinds. We also provide an equality check, which will later be required when validating type applications.
 
 {% highlight zig linenos %}
+const std = @import("std");
+
 pub const Kind = union(enum) {
     star: void, // simplest option
-    kfun: struct { left: *Kind, right: *Kind },
+    kfun: struct { left: *const Kind, right: *const Kind },
+{% endhighlight %}
 
-    pub fn isStar(a: Kind) bool {
-        return switch (a) {
-            .star => true,
-            else => false,
-        };
-    }
+Primitive kinds are trivial to inspect. A helper function allows us to distinguish `*` from function kinds:
 
-    pub fn eql(a: *const Kind, b: *const Kind) bool {
-        return switch (a.*) {
-            .star => b.isStar(),
-            .kfun => |a_fun| {
-                const b_fun = b.kfun;
-                return a_fun.left.eql(b_fun.left) and
-                    a_fun.right.eql(b_fun.right);
-            },
-        };
+{% highlight zig linenos %}
+pub fn isStar(a: Kind) bool {
+    return switch (a) {
+        .star => true,
+        else => false,
+    };
+}
+{% endhighlight %}
+
+Structural equality of kinds is defined recursively. Two `*` kinds are equal, and two function kinds are equal if both their domain and codomain kinds match:
+
+{% highlight zig linenos %}
+pub fn eql(a: *const Kind, b: *const Kind) bool {
+    return switch (a.*) {
+        .star => b.* == .star,
+        .kfun => |a_fun| switch (b.*) {
+            .star => false,
+            .kfun => |b_fun| a_fun.left.eql(b_fun.left) and
+                a_fun.right.eql(b_fun.right),
+        },
+    };
+}
+{% endhighlight %}
+
+Finally, a simple pretty-printer helps with debugging and diagnostics:
+
+{% highlight zig linenos %}
+pub fn format(self: Kind, w: anytype) !void {
+    switch (self) {
+        .star => try w.writeAll("*"),
+        .kfun => |f| {
+            try w.writeAll("(");
+            try f.left.format(w);
+            try w.writeAll(" -> ");
+            try f.right.format(w);
+            try w.writeAll(")");
+        },
     }
-};
+}
 {% endhighlight %}
 
 Now let’s move on to defining types. In our article we will distinguish:
@@ -245,26 +272,39 @@ The **TGen** type which represent “generic” or quantified type variables, it
 > We do not provide a representation for type synonyms, assuming instead that they have been fully expanded before typechecking. For example, the `String` type synonym for `[Char]`.
 {: .prompt-info }
 
-In implementation, this will look like:
+We start with identifiers shared across several definitions:
 
 {% highlight zig linenos %}
 pub const Id = u32;
+pub const GenId = u32;
+{% endhighlight %}
+
+A type variable represents an unknown type that will be resolved during inference. Each variable has a unique identifier and an associated kind.
+
+{% highlight zig linenos %}
 pub const TyVar = struct {
     id: Id,
     kind: Kind,
+{% endhighlight %}
 
-    pub fn getKind(self: TyVar) Kind {
-        return self.kind;
-    }
+Convenience helpers allow us to create star-kinded variables and compare them structurally:
 
-    pub fn eql(self: TyVar, other: TyVar) bool {
-        if (self.id == other.id and Kind.eql(&self.kind, &other.kind)) {
-            return true;
-        }
-        return false;
-    }
-};
+{% highlight zig linenos %}
+pub fn star(id: Id) TyVar {
+    return .{ .id = id, .kind = .star };
+}
+pub fn getKind(self: TyVar) Kind {
+    return self.kind;
+}
+pub fn eql(self: TyVar, other: TyVar) bool {
+    return self.id == other.id and
+        Kind.eql(&self.kind, &other.kind);
+}
+{% endhighlight %}
 
+A type constructor consists of a name and a kind. Examples include `Int : *` or `List : * -> *`.
+
+{% highlight zig linenos %}
 pub const TyCon = struct {
     name: []const u8,
     kind: Kind,
@@ -273,46 +313,85 @@ pub const TyCon = struct {
         return self.kind;
     }
 };
+{% endhighlight %}
 
+All type forms are combined into a single tagged union. This makes pattern matching and traversal straightforward.
+
+{% highlight zig linenos %}
 pub const GenId = u32;
 
 pub const Type = union(enum) {
     tvar: TyVar,
     tcon: TyCon,
-    tapp: struct { left: *Type, right: *Type },
+    tapp: struct { left: *const Type, right: *const Type },
     tgen: GenId,
+{% endhighlight %}
 
-    pub fn typevar(id: Id, kind: Kind) Type {
-        return .{ .tvar = TyVar{ .id = id, .kind = kind } };
-    }
+Construction helpers keep client code readable:
 
-    pub fn typecon(name: []const u8, kind: Kind) Type {
-        return .{ .tcon = TyCon{ .name = name, .kind = kind } };
-    }
+{% highlight zig linenos %}
+pub fn typevar(id: Id, kind: Kind) Type {
+    return .{ .tvar = TyVar{ .id = id, .kind = kind } };
+}
 
-    pub fn typeapp(left: *Type, right: *Type) Type {
-        return .{ .tapp = .{ .left = left, .right = right } };
-    }
+pub fn typecon(name: []const u8, kind: Kind) Type {
+    return .{ .tcon = TyCon{ .name = name, .kind = kind } };
+}
 
-    pub fn typegen(id: GenId) Type {
-        return .{ .tgen = id };
-    }
+pub fn typeapp(left: *const Type, right: *const Type) Type {
+    return .{ .tapp = .{ .left = left, .right = right } };
+}
 
-    pub fn getKind(self: Type) Kind {
-        return switch (self) {
-            .tvar => |s| s.getKind(),
-            .tcon => |c| c.getKind(),
-            .tgen => unreachable, // will be described later
-            .tapp => |a| blk: {
-                const k = a.left.getKind();
-                switch (k) {
-                    .kfun => |f| break :blk f.right.*,
-                    else => unreachable,
-                }
-            },
-        };
+pub fn typeappAlloc(left: Type, right: Type, alloc: std.mem.Allocator) !Type {
+    const l_ptr = try alloc.create(Type);
+    const r_ptr = try alloc.create(Type);
+    l_ptr.* = left;
+    r_ptr.* = right;
+    return Type.typeapp(l_ptr, r_ptr);
+}
+
+pub fn typegen(id: GenId) Type {
+    return .{ .tgen = id };
+}
+{% endhighlight %}
+
+The kind of a type is derived structurally. For applications, we assume well-kindedness: the left-hand side must have a function kind.
+
+{% highlight zig linenos %}
+pub fn getKind(self: Type) Kind {
+    return switch (self) {
+        .tvar => |s| s.getKind(),
+        .tcon => |c| c.getKind(),
+        .tapp => |a| blk: {
+            const k = a.left.getKind();
+            switch (k) {
+                .kfun => |f| break :blk f.right.*,
+                // Assumes well-kinded type application: left kind must be KFun
+                else => unreachable,
+            }
+        },
+
+        // TGen must be used only in type schemas
+        // And kinds of TGen's stored separately in Qual's
+        // That will be described later in future parts of article
+        .tgen => unreachable,
+    };
+}
+{% endhighlight %}
+
+For debugging purposes, we define a simple formatter:
+
+{% highlight zig linenos %}
+pub fn format(self: Type, w: *std.io.Writer) !void {
+    switch (self) {
+        .tvar => |v| try w.print("TVar({d})", .{v.id}),
+        .tcon => |c| try w.print("{s}", .{c.name}),
+        .tgen => |g| try w.print("TGen({d})", .{g}),
+        .tapp => |a| {
+            try w.print("({f} {f})", .{ a.left, a.right });
+        },
     }
-};
+}
 {% endhighlight %}
 
 Let's write our final `main` function and define some types using `Kind` and `Type`.
@@ -399,104 +478,6 @@ var fnType = Type.typeapp(&arrowInt, &listA);
 // Build a concrete list type `[Char]`.
 var listChar = Type.typeapp(&tList, &tChar);
 {% endhighlight %}
-
-Full `main` implementation with debug prints and format helpers:
-
-<details>
-
-{% highlight zig linenos %}
-const std = @import("std");
-
-fn printKind(k: Kind) void {
-    switch (k) {
-        .star => std.debug.print("*", .{}),
-        .kfun => |f| {
-            std.debug.print("(", .{});
-            printKind(f.left.*);
-            std.debug.print(" -> ", .{});
-            printKind(f.right.*);
-            std.debug.print(")", .{});
-        },
-    }
-}
-
-fn printType(t: *const Type) void {
-    switch (t.*) {
-        .tvar => |v| std.debug.print("TVar({d})", .{v.id}),
-        .tcon => |c| std.debug.print("{s}", .{c.name}),
-        .tgen => |g| std.debug.print("TGen({d})", .{g}),
-        .tapp => |a| {
-            std.debug.print("(", .{});
-            printType(a.left);
-            std.debug.print(" ", .{});
-            printType(a.right);
-            std.debug.print(")", .{});
-        },
-    }
-}
-
-pub fn main() !void {
-    var star = Kind{ .star = {} };
-    const kstar = &star;
-    var kfun_star_star = Kind{
-        .kfun = .{ .left = kstar, .right = kstar },
-    };
-
-    var tUnit = Type.typecon("()", star);
-    var tChar = Type.typecon("Char", star);
-    var tInt  = Type.typecon("Int",  star);
-    
-    var tvA = Type.typevar(0, star);
-    
-    var tList = Type.typecon("[]", kfun_star_star);
-    var tArrow = Type.typecon("(->)", Kind{
-        .kfun = .{ .left = kstar, .right = &kfun_star_star },
-    });
-    var tTuple2 = Type.typecon("(,)", kfun_star_star);
-    
-    var listA = Type.typeapp(&tList, &tvA);
-    var arrowInt = Type.typeapp(&tArrow, &tInt);
-    var fnType = Type.typeapp(&arrowInt, &listA);
-    var listChar = Type.typeapp(&tList, &tChar);
-
-    // ------------------------------------------------------------------
-    // DEBUG PRINTING
-    // ------------------------------------------------------------------
-    std.debug.print("tUnit = ", .{});
-    printType(&tUnit);
-    std.debug.print("\n", .{});
-
-    std.debug.print("tChar = ", .{});
-    printType(&tChar);
-    std.debug.print("\n", .{});
-
-    std.debug.print("tInt = ", .{});
-    printType(&tInt);
-    std.debug.print("\n", .{});
-
-    std.debug.print("tList = ", .{});
-    printType(&tList);
-    std.debug.print("\n", .{});
-
-    std.debug.print("tArrow = ", .{});
-    printType(&tArrow);
-    std.debug.print("\n", .{});
-
-    std.debug.print("tTuple2 = ", .{});
-    printType(&tTuple2);
-    std.debug.print("\n\n", .{});
-
-    std.debug.print("Type Int -> [a] = ", .{});
-    printType(&fnType);
-    std.debug.print("\n\n", .{});
-
-    std.debug.print("tString = ", .{});
-    printType(&listChar);
-    std.debug.print("\n", .{});
-}
-{% endhighlight %}
-
-</details>
 
 For compile and run we need to type:
 
