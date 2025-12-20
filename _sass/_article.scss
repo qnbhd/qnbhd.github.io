@@ -1,11 +1,16 @@
 .post {
-  background: white;
-  border: solid 1px #efefef;
-  border-radius: 6px;
+  background: var(--post-bg);
+  backdrop-filter: saturate(180%) blur(30px);
+  -webkit-backdrop-filter: saturate(180%) blur(30px);
+
+  border: 1px solid var(--elevation-border-light);
+  border-radius: var(--post-radius);
+
   margin: 2em auto;
   max-width: 52rem;
   padding: 2em 0;
-  box-shadow: 12px 18px 24px rgba(color.adjust($brand-color, $lightness: -30%), .1);
+
+  box-shadow: var(--elevation-2);
 }
 
 .post > * {
@@ -35,17 +40,18 @@
 }
 
 .post a:hover {
-  background: $highlight;
+  background: var(--color-highlight);
 }
 
 .post dl,
 .post ul,
 .post ol {
-  margin: 1.5rem 1.5rem 1.5rem 0.5rem;
+  padding-left: 1.2rem;
 }
 
 .post li {
   margin-left: 1.5rem;
+  margin-bottom: 0.4rem;
 }
 
 @media (max-width: 600px) {
@@ -63,6 +69,10 @@
 
 .post-content:first-child {
   margin-top: 4em;
+}
+
+.post-content > * + * {
+  margin-top: 1.25rem;
 }
 
 .post-meta {
@@ -84,4 +94,9 @@
   margin-left: auto;
   margin-right: auto;
   width: 50%;
+}
+
+.floating {
+  box-shadow: var(--elevation-3);
+  border: 1px solid var(--elevation-border-light);
 }

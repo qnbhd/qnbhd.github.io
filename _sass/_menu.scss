@@ -14,19 +14,28 @@
   list-style: none;
   font-size: .875em;
   margin: 0;
+
+  display: flex;
+  align-items: center;
 }
 
+
 .site-navigation a {
-  display: block;
-  padding: .25em .5em;
-  color: #333;
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  color: var(--menu-text);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   text-decoration: none;
-  transition: opacity .125s ease-in-out;
+  border-radius: 8px;
+  transition: all 0.2s var(--transition-smooth);
 
   &:hover,
   &:focus {
-    opacity: 1;
-    color: #000 !important;
+    color: var(--menu-text-hover);
+    background: rgba(0, 0, 0, 0.04);
   }
 }
 
@@ -39,4 +48,107 @@
 
 .site-navigation li.active a {
   text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .floating-header {
+    top: 0.5rem;
+    border-radius: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-header {
+    transition: none;
+  }
+}
+
+.theme-toggle-item {
+  position: relative;
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 20%;
+    bottom: 20%;
+    width: 1px;
+    background: var(--nav-border);
+    opacity: 0.6;
+  }
+}
+
+.theme-toggle-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 8px;
+  border: 1px solid var(--nav-border);
+  background: transparent;
+
+  color: var(--menu-text);
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.1s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--menu-text-hover);
+  }
+
+  &:active {
+    transform: translateY(0.5px);
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: none;
+  }
+}
+
+.theme-icon {
+  position: absolute;
+  font-size: 14px;
+  line-height: 1;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Светлая тема */
+.theme-icon--light {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.theme-icon--dark {
+  opacity: 0;
+  transform: scale(1);
+  margin-left: 2px;
+}
+
+/* Тёмная тема */
+:root[data-theme="dark"] {
+  .theme-toggle-btn {
+    color: var(--menu-text);
+  }
+
+  .theme-icon--light {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+
+  .theme-icon--dark {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

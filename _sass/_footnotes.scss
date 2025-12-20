@@ -1,7 +1,7 @@
 .footnote {
-  border: 1px solid $muted-text-color;
+  border: 1px solid var(--color-muted);
   border-radius: 1em;
-  color: $text-color;
+  color: var(--color-fg);
   display: inline;
   font-size: .75em;
   font-weight: 700;
@@ -11,8 +11,8 @@
 
   &:hover,
   &:focus {
-    background: $brand-color;
-    border-color: $brand-color;
+    background: var(--color-brand);
+    border-color: var(--color-brand);
   }
 }
 

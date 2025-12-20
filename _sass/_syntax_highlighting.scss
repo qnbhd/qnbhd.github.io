@@ -5,41 +5,37 @@ pre code {
 }
 
 code {
-  font-family: "Iosevka Term Web";
+  font-family: var(--font-mono);
   font-size: 0.955rem;
   -webkit-text-size-adjust: none;
+  letter-spacing: 0;
 }
 
 div.highlighter-rouge,
 figure.highlight {
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
+  background: var(--code-bg);
   border-radius: 6px;
-  background: #fdfdfd;
   overflow: hidden;
   margin-top: 1.2rem;
   margin-bottom: 1.2rem;
 }
 
 pre.highlight {
-  background: #fdfdfd;
+  background: var(--code-gutter-bg);
   margin: 0;
 }
 
 code.highlighter-rouge {
+  background: var(--code-inline-bg);
+  color: var(--code-fg);
+  border: .5px solid var(--code-border);
   font-size: .85rem;
-  /* padding: 0.2em 0.4em; */
-  background: #3e3e3a0e;
-  color: $accent-darker-color;
-
-  /* border-width: 2px;
-  border-radius: 3px;
-  border-color: #000000; */
   padding-top: 1px;
   padding-bottom: 1px;
   padding-left: .25rem;
   padding-right: .25rem;
 
-  border: .5px solid #aeaeae;
   border-radius: .4rem;
   border-color: #1f1e1d26;
 }
@@ -81,15 +77,15 @@ figure.highlight > pre > code:has(table) {
     padding: 0.9rem 0.6rem 0.9rem 1rem;
     text-align: right;
     vertical-align: top;
-    border-right: 1px solid #ddd;
-    background: #fdfdfd;
+    border-right: 1px solid var(--code-gutter-border);
+    background: var(--code-gutter-bg);
     user-select: none;
 
     pre.lineno {
       margin: 0;
       padding: 0;
       background: transparent;
-      color: #aaa;
+      color: var(--code-gutter-text);
       text-align: right;
       line-height: 1.45;
     }

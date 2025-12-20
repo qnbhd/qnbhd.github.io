@@ -1,8 +1,14 @@
 @mixin divider {
-  border: 0;
   display: block;
   width: 152px;
   height: 12px;
   margin: .5em auto 0;
-  background: url(#{$asset_url}/images/divider.svg) no-repeat top center;
+
+  background-color: var(--divider-color);
+
+  -webkit-mask: url(#{$asset_url}/images/divider.svg) no-repeat center;
+  mask: url(#{$asset_url}/images/divider.svg) no-repeat center;
+
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }

@@ -15,7 +15,7 @@
 }
 
 .post-link {
-  color: $text-color;
+  color: var(--color-fg);
   display: flex;
   flex-direction: column-reverse;
   text-decoration: none;
@@ -27,7 +27,7 @@
   &:hover,
   &:focus {
     opacity: 1 !important;
-    color: $text-color !important;
+    color: var(--color-fg) !important;
   }
 
   @media (min-width: $on-tablet) {

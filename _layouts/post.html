@@ -2,13 +2,10 @@
 layout: default
 ---
 
-{% if site.data.menu %} {% include menu.html %} {% else %} {% include back-link.html %} {% endif %}
-
 <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting" id="main" aria-label="Content">
   {% if page.title != "" %}
   <h1 class="post-title divided p-name" itemprop="name headline">{{ page.title }}</h1>
   {% endif %}
-
   <div class="post-content e-content" itemprop="articleBody">{{ content }}</div>
 
   <div class="post-meta">
@@ -21,5 +18,4 @@ layout: default
     {% endif %}
   </div>
 
-  {% if site.disqus.shortname %} {% include disqus-comments.html %} {% endif %}
 </article>

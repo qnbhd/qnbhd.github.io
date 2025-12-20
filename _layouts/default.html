@@ -10,6 +10,17 @@
 
     {% if site.description %}<meta name="description" content="{{ site.description }}">{% endif %}
 
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("theme");
+          if (theme) {
+            document.documentElement.dataset.theme = theme;
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <link rel="stylesheet" href="{{ '/assets/css/main.css' | absolute_url }}?{{ site.time | date: '%s%N' }}">
 
     {% if site.icon %}<link rel="apple-touch-icon" href="{{ site.icon }}">{% endif %}
@@ -34,19 +45,45 @@
     </script>
 
     <script async id="MathJax-script"
-            src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
     </script>
 
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("theme");
+          if (theme) {
+            document.documentElement.dataset.theme = theme;
+          }
+        } catch (e) {}
+
+        document.addEventListener("DOMContentLoaded", function () {
+          document.body.removeAttribute("unresolved");
+        });
+      })();
+    </script>
+
+
   </head>
-  <body>
+  <body unresolved>
+    {% if site.data.menu and site.paginate and site.paginate_path and paginator.page > 1 %} {% include menu.html %} {% elsif
+    site.paginate and site.paginate_path and paginator.page > 1 %} {% include back-link.html %} {% else %}
+      <header
+        id="site-header"
+        class="floating-header"
+        role="navigation"
+        aria-label="Primary navigation"
+      >
+        {% include menu.html %}
+      </header>
+
+    {% endif %}
 
     {{ content }}
 
     {% unless site.hide_search %}
       {% include search.html %}
     {% endunless %}
-
-    {% include menu.html %}
 
     <div class="page-bottom-spacer"></div>
 
@@ -57,6 +94,9 @@
         </p>
       </aside>
     {% endunless %}
+
+    <script src="{{ "/assets/js/theme.js" | relative_url }}"></script>
+    <script src="{{ "/assets/js/header.js" | relative_url }}"></script>
 
   </body>
 </html>

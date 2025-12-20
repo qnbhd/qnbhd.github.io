@@ -67,7 +67,7 @@ for the substitution that maps $X$ to $T$ and $Y$ to $U$.
 
 A crucial point — often glossed over in informal explanations — is that **all mappings in a substitution are applied simultaneously**.
 
-> In examples we assume that  $\to \;\equiv\; \mathrm{con}\, (\texttt{->})\;(* \to (* \to *))$ or in our implementation terms `tArrow = TCon (Tycon "(->)" (Kfun Star (Kfun Star Star)))`
+> In examples we assume that  $\to$ is defined as `tArrow = TCon (Tycon "(->)" (Kfun Star (Kfun Star Star)))`
 {: .prompt-info }
 
 For example, the substitution
@@ -423,32 +423,53 @@ The algorithm works in two phases:
 
 Let us consider a practical example demonstrating substitution composition.
 
-This example uses `std.heap.ArenaAllocator`, a region-based allocator where all allocations are performed from a single arena and freed together. Individual objects are not deallocated separately; instead, the entire arena is released at once when it goes out of scope.
-
-Arena allocation is appropriate here because kinds and types form immutable, tree-shaped structures with uniform, phase-bounded lifetimes. Operations such as type application and substitution produce many short-lived intermediate nodes and rely on stable pointers and structural sharing. Using an arena eliminates per-object deallocation, simplifies ownership concerns, and provides predictable performance and memory behavior aligned with compiler-style, functional designs.
+We begin by setting up an arena allocator.
+This models a compiler-style allocation strategy where all intermediate types and substitutions share a single lifetime.
 
 {% highlight zig linenos %}
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 defer arena.deinit();
 const alloc = arena.allocator();
+{% endhighlight %}
 
-// --- Kind: * ---
+Next, we construct the required kinds.
+We explicitly build the base kind `*` and the higher-kinded function `* -> *`.
+
+{% highlight zig linenos %}
 const kstar: Kind = .star;
 
 const kstar_ptr = try alloc.create(Kind);
 kstar_ptr.* = Kind.star;
-const kstarstar = Kind{ .kfun = .{ .left = kstar_ptr, .right = kstar_ptr } };
 
-// --- Type variables ---
+const kstarstar = Kind{
+    .kfun = .{
+        .left = kstar_ptr,
+        .right = kstar_ptr,
+    },
+};
+{% endhighlight %}
+
+We introduce three type variables.
+Variable `a` is higher-kinded, while `b` and `c` have kind `*`.
+Variable `c` is intentionally unused.
+
+{% highlight zig linenos %}
 const a = TyVar{ .id = 0, .kind = kstarstar }; // a :: * -> *
-const b = TyVar.star(1); // b :: *
-const c = TyVar.star(2); // c :: *
+const b = TyVar.star(1);                       // b :: *
+const c = TyVar.star(2);                       // c :: *
+{% endhighlight %}
 
-// --- Type constructors ---
-const tInt = Type.typecon("Int", kstar);
+We define two base type constructors of kind `*`.
+They will serve as concrete targets for substitution.
+
+{% highlight zig linenos %}
+const tInt  = Type.typecon("Int",  kstar);
 const tBool = Type.typecon("Bool", kstar);
+{% endhighlight %}
 
-// --- Build type: (a b)
+Using the defined variables, we build the abstract type application `(a b)`.
+
+{% highlight zig linenos %}
 const a_ty = Type.typevar(a.id, a.kind);
 const b_ty = Type.typevar(b.id, b.kind);
 
@@ -456,31 +477,51 @@ var app = try Type.typeappAlloc(a_ty, b_ty, alloc);
 
 std.debug.print("Original type: ", .{});
 std.debug.print("{f}\n", .{app});
+{% endhighlight %}
 
-// --- Substitution s1 = [ a ↦ Int ]
+We create the first substitution, fixing the higher-kinded variable `a` to `Int`.
+
+{% highlight zig linenos %}
 var s1 = try Sub.one(a, tInt, alloc);
+{% endhighlight %}
 
-// --- Apply s1 to type
+Applying this substitution affects only `a`, leaving `b` unchanged.
+
+{% highlight zig linenos %}
 const app1 = try Type.apply(&app, &s1, alloc);
 
-std.debug.print("After applying s1 (a ↦ Int): {f}\n", .{app1});
+std.debug.print(
+    "After applying s1 (a ↦ Int): {f}\n", .{app1},
+);
+{% endhighlight %}
 
-// --- Substitution s2 = [ b ↦ Bool ]
+We then introduce a second substitution resolving `b`.
+
+{% highlight zig linenos %}
 var s2 = try Sub.one(b, tBool, alloc);
+{% endhighlight %}
 
-// --- Compose substitutions: s = s2 ∘ s1
-// Meaning: first apply s1, then s2
+We compose the substitutions.
+`s2 ∘ s1` means that `s1` is applied first, followed by `s2`.
+
+{% highlight zig linenos %}
 var s = try s2.compose(&s1, alloc);
-
 std.debug.print("Composed substitution:\n", .{});
 s.print();
+{% endhighlight %}
 
-// --- Apply composed substitution to original type
+Applying the composed substitution yields a fully concrete type.
+
+{% highlight zig linenos %}
 const app2 = try Type.apply(&app, &s, alloc);
+std.debug.print(
+  "After applying composed substitution: {f}\n", .{app2},
+);
+{% endhighlight %}
 
-std.debug.print("After applying composed substitution: {f}\n", .{app2});
+Finally, we verify that unrelated variables are not captured by the substitution.
 
-// --- Sanity check: unused variable
+{% highlight zig linenos %}
 std.debug.print(
     "Contains c? {any}\n",
     .{s.contains(c)},

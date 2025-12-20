@@ -1,27 +1,26 @@
-.site-masthead {
-  box-sizing: border-box;
-  position: relative;
-  text-align: center;
+.floating-header {
+  position: sticky;
+  top: 20px;
+  z-index: 1000;
+
+  margin: 20px auto;
+  max-width: fit-content;
+
+  background: var(--nav-bg);
+  backdrop-filter: var(--nav-blur);
+  -webkit-backdrop-filter: var(--nav-blur);
+
+  border: 0.5px solid var(--nav-border);
+  border-radius: 14px;
+  box-shadow: var(--nav-shadow);
+
+  transition:
+    transform 0.35s ease,
+    opacity 0.35s ease,
+    background 0.35s ease;
 }
 
-.site-masthead h1 {
-  font-size: 3em;
-  margin-bottom: 0;
-  margin-top: 1em;
-  padding: 0 2rem;
-
-  @media (min-width: $on-tablet) {
-    font-size: 6em;
-  }
-}
-
-.site-masthead h2 {
-  color: $muted-text-color;
-  font-size: 1.25em;
+.floating-header .site-navigation {
   margin: 0;
-  padding: 0 2rem;
-
-  @media (min-width: $on-tablet) {
-    font-size: 3em;
-  }
+  padding: 6px 12px;
 }
